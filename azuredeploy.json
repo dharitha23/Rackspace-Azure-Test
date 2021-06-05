@@ -433,6 +433,12 @@
       ]
   }
 }
-]
+],
+"outputs": {
+    "applicationUrl": {
+        "type": "string",
+        "value": "[concat('http://', reference(variables('lbPublicIpAddressName')).dnsSettings.fqdn, '/Helloworld')]"
+    }
+}
 }
     
