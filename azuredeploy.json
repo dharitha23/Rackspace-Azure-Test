@@ -105,7 +105,8 @@
       "lbFrontEndName": "LoadBalancerFrontEnd",
       "lbBackendPoolName": "LoadBalancerBackEndPool",
       "lbProbeName": "loadBalancerHealthProbe",
-      "nsgName": "Default-NSG",
+      "nsgName1": "Subnet-NSG",
+      "nsgName2": "NIC-NSG",
       "nicIpAddresses": [
         "10.2.0.4",
         "10.2.0.5",
@@ -140,19 +141,19 @@
               "addressPrefix": "[parameters('subnetPrefix')]"
             },
             "networkSecurityGroup": {
-              "name": "[variables('nsgName')]",
+              "name": "[variables('nsgName1')]",
               "location": "[parameters('location')]",
               "tags": {},
               "properties": {
                 "securityRules": [
                   {
                     "properties": {
-                      "description": "NSG rule for allowing HTTP traffic to the LB",
-                      "protocol": "*",
+                      "description": "NSG rule for allowing internet traffic to the LB",
+                      "protocol": "Http",
                       "sourcePortRange": "*",
                       "destinationPortRange": 80,
                       "sourceAddressPrefix": "Internet",
-                      "destinationAddressPrefix": "*",
+                      "destinationAddressPrefix": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIpAddressName'))).IpAddress]",
                       "access": "allow",
                       "priority": 100,
                       "direction": "Inbound"
@@ -283,7 +284,7 @@
     },
     "dependsOn": [
         "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName')]"
     ],
     "properties": {
         "singlePlacementGroup": "[parameters('singlePlacementGroup')]",
@@ -324,7 +325,29 @@
                                         ]
                                     }
                                 }
-                            ]
+                            ],
+                            "networkSecurityGroup": {
+                                "name": "[variables('nsgName2')]",
+                                "location": "[parameters('location')]",
+                                "tags": {},
+                                "properties": {
+                                  "securityRules": [
+                                    {
+                                      "properties": {
+                                        "description": "NSG rule for allowing traffic from LB to VMSS NICs",
+                                        "protocol": "Http",
+                                        "sourcePortRange": 80,
+                                        "destinationPortRange": 8080,
+                                        "sourceAddressPrefix": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIpAddressName'))).IpAddress]",
+                                        "destinationAddressPrefix": "[variables('nicIpAddresses')]",
+                                        "access": "allow",
+                                        "priority": 110,
+                                        "direction": "Inbound"
+                                      }
+                                    }
+                                  ]
+                                }
+                            }
                         }
                     }
                 ]
