@@ -125,7 +125,7 @@
     "resources": [
       {
         "type": "Microsoft.Network/virtualNetworks",
-        "apiVersion": "2020-05-01",
+        "apiVersion": "2020-06-01",
         "name": "[parameters('vnetName')]",
         "location": "[parameters('location')]",
         "properties": {
@@ -137,34 +137,44 @@
         "subnets": [
           {
             "name": "[parameters('subnetName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName1'))]"
+            ],
             "properties": {
-              "addressPrefix": "[parameters('subnetPrefix')]"
-            },
-            "networkSecurityGroup": {
-              "name": "[variables('nsgName1')]",
-              "location": "[parameters('location')]",
-              "tags": {},
-              "properties": {
-                "securityRules": [
-                  {
-                    "properties": {
-                      "description": "NSG rule for allowing internet traffic to the LB",
-                      "protocol": "Http",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": 80,
-                      "sourceAddressPrefix": "Internet",
-                      "destinationAddressPrefix": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIpAddressName'))).IpAddress]",
-                      "access": "allow",
-                      "priority": 100,
-                      "direction": "Inbound"
-                    }
-                  }
-                ]
+              "addressPrefix": "[parameters('subnetPrefix')]",
+              "networkSecurityGroup": {
+                  "id": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName1'))]"
               }
             }
           }
         ]
      }
+    },
+    {
+        "type": "Microsoft.Network/networkSecurityGroups",
+        "apiVersion": "2020-06-01",
+        "name": "[variables('nsgName1')]",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+            "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+        ],
+        "properties": {
+            "securityRules": [
+            {
+                "properties": {
+                "description": "NSG rule for allowing internet traffic to the LB",
+                "protocol": "Tcp",
+                "sourcePortRange": "*",
+                "destinationPortRange": "80",
+                "sourceAddressPrefix": "Internet",
+                "destinationAddressPrefix": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIpAddressName'))).IpAddress]",
+                "access": "Allow",
+                "priority": 100,
+                "direction": "Inbound"
+                }
+            }
+            ]
+        }
     },
     {
       "type": "Microsoft.Network/loadBalancers",
@@ -224,7 +234,8 @@
                       "protocol": "Http",
                       "port": 80,
                       "intervalInSeconds": 5,
-                      "numberOfProbes": 2
+                      "numberOfProbes": 2,
+                      "requestPath": "/"
                   }
               }
           ]
@@ -240,7 +251,7 @@
       },
       "properties": {
           "publicIPAddressVersion": "IPv4",
-          "publicIPAllocationMethod": "Dynamic",
+          "publicIPAllocationMethod": "Static",
           "dnsSettings": {
             "domainNameLabel": "[variables('domainName')]"
         }
@@ -248,7 +259,7 @@
   },
   {
       "type": "Microsoft.Network/loadBalancers/backendAddressPools",
-      "apiVersion": "2020-05-01",
+      "apiVersion": "2020-06-01",
       "name": "[concat(parameters('lbName'), '/', variables('lbBackendPoolName'))]",
       "location": "[parameters('location')]",
       "dependsOn": [
@@ -284,7 +295,7 @@
     },
     "dependsOn": [
         "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName')]"
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
     ],
     "properties": {
         "singlePlacementGroup": "[parameters('singlePlacementGroup')]",
@@ -329,7 +340,6 @@
                             "networkSecurityGroup": {
                                 "name": "[variables('nsgName2')]",
                                 "location": "[parameters('location')]",
-                                "tags": {},
                                 "properties": {
                                   "securityRules": [
                                     {
