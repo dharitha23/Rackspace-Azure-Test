@@ -29,25 +29,21 @@ rg_result = resource_client.resource_groups.create_or_update(
     }
 )
 
-#step2: Create VNET with a subnet
+#step2: Deploy rest of the resources
 
 template_path = os.path.join(os.path.dirname(__file__), 'templates', 'azuredeploy.json')
 with open(template_path, 'r') as template_file_fd:
     template = json.load(template_file_fd)
 
-parameters = {
-    'vnetName': "Vnet1",
-    'subnetName': "Subnet1",
-    'location': location
-}
+params_path = os.path.join(os.path.dirname(__file__), 'templates', 'azuredeploy.parameters.json')
+with open(params_path, 'r') as params_file_fd:
+    param = json.load(params_file_fd)
 
-parameters = {k: {'value': v} for k, v in parameters.items()}
-
-deployment_properties = DeploymentProperties(mode=DeploymentMode.incremental, template=template, parameters=parameters)
+deployment_properties = DeploymentProperties(mode=DeploymentMode.incremental, template=template, parameters=param)
 
 deployment_async_operation = resource_client.deployments.begin_create_or_update(
     resource_group_name = resource_group,
-    deployment_name = 'vnet-and-subnet',
+    deployment_name = 'helloworld-app',
     parameters = Deployment(properties=deployment_properties)
 )
 
