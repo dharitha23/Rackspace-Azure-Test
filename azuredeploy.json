@@ -51,22 +51,9 @@
             "description": "Size of VMs in the VM Scale Set."
         }
       },
-      "windowsOSVersion": {
-          "type": "string",
-          "defaultValue": "2019-Datacenter",
-          "allowedValues": [
-              "2008-R2-SP1",
-              "2012-Datacenter",
-              "2012-R2-Datacenter",
-              "2016-Datacenter",
-              "2019-Datacenter"
-          ],
-          "metadata": {
-              "description": "The Windows version for the VM. This will pick a fully patched image of this given Windows version. Allowed values: 2008-R2-SP1, 2012-Datacenter, 2012-R2-Datacenter & 2016-Datacenter, 2019-Datacenter."
-          }
-      },
       "vmssName": {
           "type": "string",
+          "defaultValue": "VMSS1",
           "minLength": 3,
           "maxLength": 61,
           "metadata": {
@@ -102,41 +89,6 @@
               "description": "Admin password on all VMs."
           }
       },
-      "_artifactsLocation": {
-          "type": "string",
-          "defaultValue": "[deployment().properties.templatelink.uri]",
-          "metadata": {
-              "description": "The base URI where artifacts required by this template are located. For example, if stored on a public GitHub repo, you'd use the following URI: https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vmss-windows-webapp-dsc-autoscale/."
-          }
-      },
-      "_artifactsLocationSasToken": {
-          "type": "securestring",
-          "defaultValue": "",
-          "metadata": {
-              "description": "The sasToken required to access _artifactsLocation.  If your artifacts are stored on a public repo or public storage account you can leave this blank."
-          }
-      },
-      "powershelldscZip": {
-          "type": "string",
-          "defaultValue": "DSC/InstallIIS.zip",
-          "metadata": {
-              "description": "Location of the PowerShell DSC zip file relative to the URI specified in the _artifactsLocation, i.e. DSC/IISInstall.ps1.zip"
-          }
-      },
-      "webDeployPackage": {
-          "type": "string",
-          "defaultValue": "WebDeploy/DefaultASPWebApp.v1.0.zip",
-          "metadata": {
-              "description": "Location of the  of the WebDeploy package zip file relative to the URI specified in _artifactsLocation, i.e. WebDeploy/DefaultASPWebApp.v1.0.zip"
-          }
-      },
-      "powershelldscUpdateTagVersion": {
-          "type": "string",
-          "defaultValue": "1.0",
-          "metadata": {
-              "description": "Version number of the DSC deployment. Changing this value on subsequent deployments will trigger the extension to run."
-          }
-      },
       "platformFaultDomainCount": {
           "type": "int",
           "defaultValue": 1,
@@ -146,35 +98,29 @@
     }
     },
     "variables": {
-      "namingInfix": "[toLower(substring(concat(parameters('vmssName'), uniqueString(resourceGroup().id)), 0, 9))]",
-      "longNamingInfix": "[toLower(parameters('vmssName'))]",
-      "addressPrefix": "10.0.0.0/16",
-      "subnetPrefix": "10.0.0.0/24",
-      "virtualNetworkName": "[concat(variables('namingInfix'), 'vnet')]",
-      "publicIPAddressName": "[concat(variables('namingInfix'), 'pip')]",
-      "subnetName": "[concat(variables('namingInfix'), 'subnet')]",
-      "loadBalancerName": "[concat(variables('namingInfix'), 'lb')]",
-      "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]",
-      "lbProbeID": "[resourceId('Microsoft.Network/loadBalancers/probes',variables('loadBalancerName'), 'tcpProbe')]",
-      "natPoolName": "[concat(variables('namingInfix'), 'natpool')]",
-      "bePoolName": "[concat(variables('namingInfix'), 'bepool')]",
-      "lbPoolID": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools',variables('loadBalancerName'),variables('bePoolName'))]",
-      "natStartPort": 50000,
-      "natEndPort": 50119,
-      "natBackendPort": 3389,
-      "nicName": "[concat(variables('namingInfix'), 'nic')]",
-      "ipConfigName": "[concat(variables('namingInfix'), 'ipconfig')]",
-      "frontEndIPConfigID": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations',variables('loadBalancerName'),'loadBalancerFrontEnd')]",
+      "domainName": "[toLower(substring(concat(parameters('vmssName'), uniqueString(resourceGroup().id)), 0, 9))]",
+      "vmssName": "[toLower(parameters('vmssName'))]",
+      "lbSkuName": "Standard",
+      "lbPublicIpAddressName": "lbPublicIP",
+      "lbFrontEndName": "LoadBalancerFrontEnd",
+      "lbBackendPoolName": "LoadBalancerBackEndPool",
+      "lbProbeName": "loadBalancerHealthProbe",
+      "nsgName": "Default-NSG",
+      "nicIpAddresses": [
+        "10.2.0.4",
+        "10.2.0.5",
+        "10.2.0.6"
+        ],
+      "nicName": "[concat(variables('domainName'), 'nic')]",
+      "ipConfigName": "[concat(variables('domainName'), 'ipconfig')]",
       "osType": {
-          "publisher": "MicrosoftWindowsServer",
-          "offer": "WindowsServer",
-          "sku": "[parameters('windowsOSVersion')]",
-          "version": "latest"
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "18.04-LTS",
+            "version": "latest"
       },
-      "imageReference": "[variables('osType')]",
-      "webDeployPackageFullPath": "[uri(parameters('_artifactsLocation'), concat(parameters('webDeployPackage'), parameters('_artifactsLocationSasToken')))]",
-      "powershelldscZipFullPath": "[uri(parameters('_artifactsLocation'), concat(parameters('powershelldscZip'), parameters('_artifactsLocationSasToken')))]"
-  },
+      "imageReference": "[variables('osType')]"
+    },
     "resources": [
       {
         "type": "Microsoft.Network/virtualNetworks",
@@ -222,7 +168,7 @@
     {
       "type": "Microsoft.Network/loadBalancers",
       "apiVersion": "2020-06-01",
-      "name": "[variables('lbName')]",
+      "name": "[parameters('lbName')]",
       "location": "[parameters('location')]",
       "sku": {
           "name": "[variables('lbSkuName')]"
@@ -248,13 +194,13 @@
           ],
           "loadBalancingRules": [
               {
-                  "name": "myHTTPRule",
+                  "name": "HTTPRule",
                   "properties": {
                       "frontendIPConfiguration": {
-                          "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', variables('lbName'), variables('lbFrontEndName'))]"
+                          "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', parameters('lbName'), variables('lbFrontEndName'))]"
                       },
                       "backendAddressPool": {
-                          "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('lbName'), variables('lbBackendPoolName'))]"
+                          "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('lbName'), variables('lbBackendPoolName'))]"
                       },
                       "frontendPort": 80,
                       "backendPort": 80,
@@ -265,7 +211,7 @@
                       "loadDistribution": "Default",
                       "disableOutboundSnat": true,
                       "probe": {
-                          "id": "[resourceId('Microsoft.Network/loadBalancers/probes', variables('lbName'), variables('lbProbeName'))]"
+                          "id": "[resourceId('Microsoft.Network/loadBalancers/probes', parameters('lbName'), variables('lbProbeName'))]"
                       }
                   }
               }
@@ -295,14 +241,14 @@
           "publicIPAddressVersion": "IPv4",
           "publicIPAllocationMethod": "Dynamic",
           "dnsSettings": {
-            "domainNameLabel": "[variables('longNamingInfix')]"
+            "domainNameLabel": "[variables('domainName')]"
         }
       }
   },
   {
       "type": "Microsoft.Network/loadBalancers/backendAddressPools",
       "apiVersion": "2020-05-01",
-      "name": "[concat(variables('lbName'), '/', variables('lbBackendPoolName'))]",
+      "name": "[concat(parameters('lbName'), '/', variables('lbBackendPoolName'))]",
       "location": "[parameters('location')]",
       "dependsOn": [
           "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]"
@@ -316,7 +262,7 @@
               "name": "[concat('address', copyIndex('loadBalancerBackendAddresses'))]",
               "properties": {    
                       "virtualNetwork": {
-                          "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vNetName'))]"
+                          "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
                       },
                       "ipAddress": "[variables('nicIpAddresses')[copyIndex('loadBalancerBackendAddresses')]]"
               }
@@ -328,7 +274,7 @@
   {
     "type": "Microsoft.Compute/virtualMachineScaleSets",
     "apiVersion": "2020-06-01",
-    "name": "[variables('namingInfix')]",
+    "name": "[variables('vmssName')]",
     "location": "[parameters('location')]",
     "sku": {
         "name": "[parameters('vmSku')]",
@@ -336,12 +282,14 @@
         "capacity": "[parameters('instanceCount')]"
     },
     "dependsOn": [
-        "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+        "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
     ],
     "properties": {
+        "singlePlacementGroup": "[parameters('singlePlacementGroup')]",
+        "platformFaultDomainCount": "[parameters('platformFaultDomainCount')]",
         "upgradePolicy": {
-            "mode": "Automatic"
+            "mode": "Manual"
         },
         "virtualMachineProfile": {
             "storageProfile": {
@@ -352,7 +300,7 @@
                 "imageReference": "[variables('imageReference')]"
             },
             "osProfile": {
-                "computerNamePrefix": "[variables('namingInfix')]",
+                "computerNamePrefix": "[variables('vmssName')]",
                 "adminUsername": "[parameters('adminUsername')]",
                 "adminPassword": "[parameters('adminPassword')]"
             },
@@ -373,11 +321,6 @@
                                             {
                                               "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('lbName'), variables('lbBackendPoolName'))]"
                                             }
-                                        ],
-                                        "loadBalancerInboundNatPools": [
-                                            {
-                                                "id": "[resourceId('Microsoft.Network/loadBalancers/inboundNatPools', parameters('lbName'),  variables('natPoolName'))]"
-                                            }
                                         ]
                                     }
                                 }
@@ -389,23 +332,14 @@
             "extensionProfile": {
                 "extensions": [
                     {
-                        "name": "Microsoft.Powershell.DSC",
+                        "name": "InstallApacheAndRunHelloWorld",
                         "properties": {
-                            "publisher": "Microsoft.Powershell",
-                            "type": "DSC",
+                            "publisher": "Microsoft.Compute",
+                            "type": "CustomScriptExtension",
                             "typeHandlerVersion": "2.9",
                             "autoUpgradeMinorVersion": true,
-                            "forceUpdateTag": "[parameters('powershelldscUpdateTagVersion')]",
                             "settings": {
-                                "configuration": {
-                                    "url": "[variables('powershelldscZipFullPath')]",
-                                    "script": "InstallIIS.ps1",
-                                    "function": "InstallIIS"
-                                },
-                                "configurationArguments": {
-                                    "nodeName": "localhost",
-                                    "WebDeployPackagePath": "[variables('webDeployPackageFullPath')]"
-                                }
+                                "commandToExecute": "sh install_apache_run_hello_world.sh"
                             }
                         }
                     }
@@ -420,11 +354,11 @@
   "name": "autoscalehost",
   "location": "[parameters('location')]",
   "dependsOn": [
-      "[resourceId('Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]"
+      "[resourceId('Microsoft.Compute/virtualMachineScaleSets/', variables('vmssName'))]"
   ],
   "properties": {
       "name": "autoscalehost",
-      "targetResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', variables('namingInfix'))]",
+      "targetResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', variables('vmssName'))]",
       "enabled": true,
       "profiles": [
           {
@@ -438,7 +372,7 @@
                   {
                       "metricTrigger": {
                           "metricName": "Percentage CPU",
-                          "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', variables('namingInfix'))]",
+                          "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', variables('vmssName'))]",
                           "timeGrain": "PT1M",
                           "statistic": "Average",
                           "timeWindow": "PT5M",
@@ -456,7 +390,7 @@
                   {
                       "metricTrigger": {
                           "metricName": "Percentage CPU",
-                          "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', variables('namingInfix'))]",
+                          "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', variables('vmssName'))]",
                           "timeGrain": "PT1M",
                           "statistic": "Average",
                           "timeWindow": "PT5M",
