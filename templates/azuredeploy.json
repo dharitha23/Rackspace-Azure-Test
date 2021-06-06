@@ -16,16 +16,30 @@
           "description": "Address prefix"
         }
       },
-      "subnetPrefix": {
+      "subnet1AddressPrefix": {
         "type": "string",
         "defaultValue": "10.2.0.0/24",
         "metadata": {
           "description": "Subnet Prefix"
         }
       },
-      "subnetName": {
+      "subnet1Name": {
         "type": "string",
-        "defaultValue": "Subnet1",
+        "defaultValue": "subnet1",
+        "metadata": {
+          "description": "Subnet Name"
+        }
+      },
+      "subnet2AddressPrefix": {
+        "type": "string",
+        "defaultValue": "10.2.1.0/24",
+        "metadata": {
+          "description": "Subnet Prefix"
+        }
+      },
+      "subnet2Name": {
+        "type": "string",
+        "defaultValue": "subnet2",
         "metadata": {
           "description": "Subnet Name"
         }
@@ -134,30 +148,37 @@
               "[parameters('vnetAddressPrefix')]"
             ]
           },
-        "subnets": [
-          {
-            "name": "[parameters('subnetName')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName1'))]"
-            ],
-            "properties": {
-              "addressPrefix": "[parameters('subnetPrefix')]",
-              "networkSecurityGroup": {
-                  "id": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName1'))]"
+          "subnets": [
+              {
+                "name": "[parameters('subnet1Name')]",
+                "location": "[parameters('location')]",
+                "properties": {
+                    "addressPrefix": "[parameters('subnet1AddressPrefix')]"
+                }
               }
-            }
-          }
-        ]
+          ]
      }
+    },
+    {
+        "type": "Microsoft.Network/virtualNetworks/subnets",
+        "apiVersion": "2020-11-01",
+        "name": "[concat(parameters('vnetName'), '/subnet1')]",
+        "dependsOn": [
+            "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+            "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName1'))]"
+        ],
+        "properties": {
+            "addressPrefix": "[parameters('subnet1AddressPrefix')]",
+            "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName1'))]"
+            }
+        }
     },
     {
         "type": "Microsoft.Network/networkSecurityGroups",
         "apiVersion": "2020-06-01",
         "name": "[variables('nsgName1')]",
         "location": "[parameters('location')]",
-        "dependsOn": [
-            "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-        ],
         "properties": {
             "securityRules": [
             {
@@ -167,7 +188,7 @@
                 "sourcePortRange": "*",
                 "destinationPortRange": "80",
                 "sourceAddressPrefix": "Internet",
-                "destinationAddressPrefix": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIpAddressName'))).IpAddress]",
+                "destinationAddressPrefix": "[reference(variables('lbPublicIPAddressName')).ipAddress]",
                 "access": "Allow",
                 "priority": 100,
                 "direction": "Inbound"
@@ -185,6 +206,7 @@
           "name": "[variables('lbSkuName')]"
       },
       "dependsOn": [
+          "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
           "[resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIpAddressName'))]"
       ],
       "properties": {
@@ -258,34 +280,8 @@
       }
   },
   {
-      "type": "Microsoft.Network/loadBalancers/backendAddressPools",
-      "apiVersion": "2020-06-01",
-      "name": "[concat(parameters('lbName'), '/', variables('lbBackendPoolName'))]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-          "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]"
-      ],
-      "properties": {
-          "copy": [
-      {
-          "name": "loadBalancerBackendAddresses",
-          "count": "[length(variables('nicIpAddresses'))]",
-          "input": {
-              "name": "[concat('address', copyIndex('loadBalancerBackendAddresses'))]",
-              "properties": {    
-                      "virtualNetwork": {
-                          "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-                      },
-                      "ipAddress": "[variables('nicIpAddresses')[copyIndex('loadBalancerBackendAddresses')]]"
-              }
-          }
-      }
-      ]
-  }
-  },
-  {
     "type": "Microsoft.Compute/virtualMachineScaleSets",
-    "apiVersion": "2020-06-01",
+    "apiVersion": "2019-03-01",
     "name": "[variables('vmssName')]",
     "location": "[parameters('location')]",
     "sku": {
@@ -295,7 +291,8 @@
     },
     "dependsOn": [
         "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName2'))]"
     ],
     "properties": {
         "singlePlacementGroup": "[parameters('singlePlacementGroup')]",
@@ -327,7 +324,7 @@
                                     "name": "[variables('ipConfigName')]",
                                     "properties": {
                                         "subnet": {
-                                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnet1Name'))]"
                                         },
                                         "loadBalancerBackendAddressPools": [
                                             {
@@ -338,25 +335,7 @@
                                 }
                             ],
                             "networkSecurityGroup": {
-                                "name": "[variables('nsgName2')]",
-                                "location": "[parameters('location')]",
-                                "properties": {
-                                  "securityRules": [
-                                    {
-                                      "properties": {
-                                        "description": "NSG rule for allowing traffic from LB to VMSS NICs",
-                                        "protocol": "Http",
-                                        "sourcePortRange": 80,
-                                        "destinationPortRange": 8080,
-                                        "sourceAddressPrefix": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIpAddressName'))).IpAddress]",
-                                        "destinationAddressPrefix": "[variables('nicIpAddresses')]",
-                                        "access": "allow",
-                                        "priority": 110,
-                                        "direction": "Inbound"
-                                      }
-                                    }
-                                  ]
-                                }
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName2'))]"
                             }
                         }
                     }
@@ -369,7 +348,7 @@
                         "properties": {
                             "publisher": "Microsoft.Compute",
                             "type": "CustomScriptExtension",
-                            "typeHandlerVersion": "2.9",
+                            "typeHandlerVersion": "1.10",
                             "autoUpgradeMinorVersion": true,
                             "settings": {
                                 "commandToExecute": "sh install_apache_run_hello_world.sh"
@@ -379,6 +358,29 @@
                 ]
             }
         }
+    }
+},
+{   
+    "type": "Microsoft.Network/networkSecurityGroups",
+    "apiVersion": "2020-06-01",
+    "name": "[variables('nsgName2')]",
+    "location": "[parameters('location')]",
+    "properties": {
+        "securityRules": [
+        {
+            "properties": {
+            "description": "NSG rule for allowing traffic from LB to VMSS NICs",
+            "protocol": "Tcp",
+            "sourcePortRange": "80",
+            "destinationPortRange": "8080",
+            "sourceAddressPrefix": "[reference(variables('lbPublicIPAddressName')).ipAddress]",
+            "destinationAddressPrefix": "*",
+            "access": "Allow",
+            "priority": 110,
+            "direction": "Inbound"
+            }
+        }
+        ]
     }
 },
 {

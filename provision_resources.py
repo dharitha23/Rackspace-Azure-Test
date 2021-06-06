@@ -36,7 +36,7 @@ with open(template_path, 'r') as template_file_fd:
     template = json.load(template_file_fd)
 
 parameters = {
-        'adminPassword': "BLAHBLAH"
+        'adminPassword': "BLAHBLAh6"
       }
 parameters = {k: {'value': v} for k, v in parameters.items()}
 
