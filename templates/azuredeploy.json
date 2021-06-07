@@ -353,9 +353,9 @@
                                 "timestamp":123456789          
                               },
                             "protectedSettings": {
-                                "commandToExecute": "sh vmssscript.sh",
+                                "commandToExecute": "./vmssscript.sh",
                                 "fileUris": [
-                                    "https://github.com/dharitha23/Rackspace-Azure-Test/blob/main/scripts/vmssscript.sh"
+                                    "https://github.com/dharitha23/Rackspace-Azure-Test/tree/main/scripts/vmssscript.sh"
                                 ]
                             }
                         }
@@ -431,7 +431,7 @@
 "outputs": {
     "applicationUrl": {
         "type": "string",
-        "value": "[concat('http://', reference(variables('lbPublicIpAddressName')).dnsSettings.fqdn, '/Helloworld')]"
+        "value": "[concat('http://', reference(variables('lbPublicIpAddressName')).dnsSettings.fqdn, '/Helloworld.html')]"
     }
 }
 }
