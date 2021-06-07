@@ -343,13 +343,13 @@
                     {
                         "name": "InstallApacheAndRunHelloWorld",
                         "properties": {
-                            "publisher": "Microsoft.Compute",
-                            "type": "CustomScriptExtension",
-                            "typeHandlerVersion": "1.10",
+                            "publisher": "Microsoft.Azure.Extensions",
+                            "type": "CustomScript",
+                            "typeHandlerVersion": "2.1",
                             "autoUpgradeMinorVersion": true,
                             "settings": {
-                                "fileUris": [""],
-                                "commandToExecute": "./scripts/install_apache_run_hello_world.sh"
+                                "fileUris": ["https://github.com/dharitha23/Rackspace-Azure-Test/blob/main/scripts/install_apache_run_hello_world.sh"],
+                                "commandToExecute": "sh install_apache_run_hello_world.sh"
                             }
                         }
                     }
