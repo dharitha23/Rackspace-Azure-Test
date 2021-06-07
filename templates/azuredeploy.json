@@ -353,8 +353,10 @@
                                 "timestamp":123456789          
                               },
                             "protectedSettings": {
-                                "commandToExecute": "sh install_apache_run_hello_world.sh",
-                                "fileUris": ["https://github.com/dharitha23/Rackspace-Azure-Test/blob/main/scripts/install_apache_run_hello_world.sh"],
+                                "commandToExecute": "sh vmssscript.sh",
+                                "fileUris": [
+                                    "https://github.com/dharitha23/Rackspace-Azure-Test/blob/main/scripts/vmssscript.sh"
+                                ]
                             }
                         }
                     }
