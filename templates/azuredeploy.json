@@ -295,10 +295,11 @@
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
     ],
     "properties": {
+        "overprovision": false,
         "singlePlacementGroup": "[parameters('singlePlacementGroup')]",
         "platformFaultDomainCount": "[parameters('platformFaultDomainCount')]",
         "upgradePolicy": {
-            "mode": "Automatic"
+            "mode": "Manual"
         },
         "virtualMachineProfile": {
             "storageProfile": {
@@ -348,8 +349,12 @@
                             "typeHandlerVersion": "2.1",
                             "autoUpgradeMinorVersion": true,
                             "settings": {
+                                "skipDos2Unix":false,
+                                "timestamp":123456789          
+                              },
+                            "protectedSettings": {
+                                "commandToExecute": "sh install_apache_run_hello_world.sh",
                                 "fileUris": ["https://github.com/dharitha23/Rackspace-Azure-Test/blob/main/scripts/install_apache_run_hello_world.sh"],
-                                "commandToExecute": "sh install_apache_run_hello_world.sh"
                             }
                         }
                     }
