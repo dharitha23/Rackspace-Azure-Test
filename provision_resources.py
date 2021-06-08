@@ -1,11 +1,11 @@
 # Import the needed credential and management objects from the libraries.
-import os
-import json
 from azure.mgmt.resource import ResourceManagementClient
 from azure.identity import InteractiveBrowserCredential
 from azure.mgmt.resource.resources.models import DeploymentMode
 from azure.mgmt.resource.resources.models import Deployment
 from azure.mgmt.resource.resources.models import DeploymentProperties
+import os
+import json
 
 
 # Acquire a credential object using CLI-based authentication.
