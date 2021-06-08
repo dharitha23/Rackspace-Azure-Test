@@ -25,4 +25,4 @@ $html = @"
 </html>
 "@
 
-Add-Content -Path 'C:\\inetpub\\wwwroot\\iisstart.htm' -Value ('Hello World from ' + $html)
+Add-Content -Path 'C:\\inetpub\\wwwroot\\iisstart.htm' -Value ($html)

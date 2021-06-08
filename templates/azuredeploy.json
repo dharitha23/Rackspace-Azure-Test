@@ -202,20 +202,6 @@
                 "priority": 100,
                 "direction": "Inbound"
                 }
-            },
-            {
-                "name": "Deny_RDP_SSH",
-                "properties": {
-                "description": "NSG rule for denying RDP and SSH traffic",
-                "protocol": "Tcp",
-                "sourcePortRange": "*",
-                "destinationPortRange": "3389,22",
-                "sourceAddressPrefix": "Internet",
-                "destinationAddressPrefix": "*",
-                "access": "Deny",
-                "priority": 101,
-                "direction": "Inbound"
-                }
             }
             ]
         }
@@ -371,9 +357,13 @@
                             "typeHandlerVersion": "1.7",
                             "autoUpgradeMinorVersion": true,
                             "settings": {
-                                "fileUris": "https://github.com/dharitha23/Rackspace-Azure-Test/blob/d98c3e28a7d2f28267929cdb3ab3d3187859a327/scripts/installwebserver.ps1",
-                                "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted installwebserver.ps1"
-                              }
+                                "fileUris": ["https://helloworldappstorage.blob.core.windows.net/installwebserverscript/installwebserver.ps1"]
+                              },
+                            "protectedSettings": {
+                                "storageAccountName": "helloworldappstorage",
+                                "storageAccountKey": "2XI0P4nzvVDYYS/+P+f30W2m5IABkP0ShsFwgoBzmGstKxzQiWHiPOTNsfI5koWWXMHRJyrMwk5yf/2AcTOFQw==",
+                                "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File installwebserver.ps1"
+                            }
                         }
                     }
                 ]
