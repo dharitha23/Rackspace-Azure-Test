@@ -83,13 +83,6 @@
               "description": "Number of VM instances (100 or less)."
           }
       },
-      "singlePlacementGroup": {
-          "type": "bool",
-          "defaultValue": true,
-          "metadata": {
-              "description": "When true this limits the scale set to a single placement group, of max size 100 virtual machines. NOTE: If singlePlacementGroup is true, it may be modified to false. However, if singlePlacementGroup is false, it may not be modified to true."
-          }
-      },
       "adminPassword": {
         "type": "securestring",
         "metadata": {
@@ -115,13 +108,6 @@
         ],
         "metadata": {
             "description": "The Windows version for the VM. This will pick a fully patched image of this given Windows version. Allowed values: 2008-R2-SP1, 2012-Datacenter, 2012-R2-Datacenter & 2016-Datacenter, 2019-Datacenter."
-        }
-    },
-    "platformFaultDomainCount": {
-        "type": "int",
-        "defaultValue": 1,
-        "metadata": {
-            "description": "Fault Domain count for each placement group."
         }
     }
     },
@@ -307,9 +293,7 @@
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
     ],
     "properties": {
-        "overprovision": false,
-        "singlePlacementGroup": "[parameters('singlePlacementGroup')]",
-        "platformFaultDomainCount": "[parameters('platformFaultDomainCount')]",
+        "overprovision": true,
         "upgradePolicy": {
             "mode": "Automatic"
         },
