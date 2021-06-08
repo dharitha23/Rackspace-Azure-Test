@@ -30,20 +30,6 @@
           "description": "Subnet Name"
         }
       },
-      "subnet2AddressPrefix": {
-        "type": "string",
-        "defaultValue": "10.2.1.0/24",
-        "metadata": {
-          "description": "Subnet Prefix"
-        }
-      },
-      "subnet2Name": {
-        "type": "string",
-        "defaultValue": "subnet2",
-        "metadata": {
-          "description": "Subnet Name"
-        }
-      },
       "lbName": {
         "type": "string",
         "defaultValue": "Lb1",
