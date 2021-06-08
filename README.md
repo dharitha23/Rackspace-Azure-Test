@@ -2,6 +2,10 @@
 
  The project contains arm templates (JSON template files) and a python script to set up a simple Hello world website in a highly available and zone-redundant infrastructure using Azure Load Balancer, Virtual Machine Scale Sets, NSGs, Subnet and Vnet.
  
+ 
+ To run and setup the infrastructure: (run the python script - provision_resources.py)
+  python provision_resources.py
+ 
 It follows these requirements:
 
 Virtual Network with a private subnet and all required dependent infrastructure
