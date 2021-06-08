@@ -293,6 +293,10 @@
     "apiVersion": "2019-03-01",
     "name": "[variables('vmssName')]",
     "location": "[parameters('location')]",
+    "zones":[
+        "1",
+        "2"
+    ],
     "sku": {
         "name": "[parameters('vmSku')]",
         "tier": "Standard",
