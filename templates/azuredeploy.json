@@ -371,8 +371,8 @@
                             "typeHandlerVersion": "1.7",
                             "autoUpgradeMinorVersion": true,
                             "settings": {
-                                "fileUris": "",
-                                "commandToExecute": "powershell.exe installwebserver.ps1"
+                                "fileUris": "https://github.com/dharitha23/Rackspace-Azure-Test/blob/d98c3e28a7d2f28267929cdb3ab3d3187859a327/scripts/installwebserver.ps1",
+                                "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted installwebserver.ps1"
                               }
                         }
                     }
