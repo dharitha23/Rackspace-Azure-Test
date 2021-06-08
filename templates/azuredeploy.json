@@ -90,25 +90,39 @@
               "description": "When true this limits the scale set to a single placement group, of max size 100 virtual machines. NOTE: If singlePlacementGroup is true, it may be modified to false. However, if singlePlacementGroup is false, it may not be modified to true."
           }
       },
-      "adminUsername": {
-          "type": "string",
-          "defaultValue": "vmssadmin",
-          "metadata": {
-              "description": "Admin username on all VMs."
-          }
-      },
       "adminPassword": {
-          "type": "securestring",
-          "metadata": {
-              "description": "Admin password on all VMs."
-          }
-      },
-      "platformFaultDomainCount": {
-          "type": "int",
-          "defaultValue": 1,
-          "metadata": {
-              "description": "Fault Domain count for each placement group."
-          }
+        "type": "securestring",
+        "metadata": {
+            "description": "Admin password on all VMs."
+        }
+    },
+    "adminUsername": {
+        "type": "string",
+        "defaultValue": "vmadminuser",
+        "metadata": {
+            "description": "Admin username on all VMs."
+        }
+    },
+    "windowsOSVersion": {
+        "type": "string",
+        "defaultValue": "2019-Datacenter",
+        "allowedValues": [
+            "2008-R2-SP1",
+            "2012-Datacenter",
+            "2012-R2-Datacenter",
+            "2016-Datacenter",
+            "2019-Datacenter"
+        ],
+        "metadata": {
+            "description": "The Windows version for the VM. This will pick a fully patched image of this given Windows version. Allowed values: 2008-R2-SP1, 2012-Datacenter, 2012-R2-Datacenter & 2016-Datacenter, 2019-Datacenter."
+        }
+    },
+    "platformFaultDomainCount": {
+        "type": "int",
+        "defaultValue": 1,
+        "metadata": {
+            "description": "Fault Domain count for each placement group."
+        }
     }
     },
     "variables": {
@@ -120,20 +134,14 @@
       "lbBackendPoolName": "LoadBalancerBackEndPool",
       "lbProbeName": "loadBalancerHealthProbe",
       "nsgName1": "Default-NSG",
-      "nsgName2": "NIC-NSG",
-      "nicIpAddresses": [
-        "10.2.0.4",
-        "10.2.0.5",
-        "10.2.0.6"
-        ],
       "nicName": "[concat(variables('domainName'), 'nic')]",
       "ipConfigName": "[concat(variables('domainName'), 'ipconfig')]",
       "osType": {
-            "publisher": "Canonical",
-            "offer": "UbuntuServer",
-            "sku": "18.04-LTS",
-            "version": "latest"
-      },
+        "publisher": "MicrosoftWindowsServer",
+        "offer": "WindowsServer",
+        "sku": "[parameters('windowsOSVersion')]",
+        "version": "latest"
+        },
       "imageReference": "[variables('osType')]"
     },
     "resources": [
@@ -182,16 +190,30 @@
         "properties": {
             "securityRules": [
             {
-                "name": "HTTP",
+                "name": "Allow_HTTP",
                 "properties": {
-                "description": "NSG rule for allowing internet traffic to the LB",
-                "protocol": "Tcp",
+                "description": "NSG rule for allowing HTTP traffic",
+                "protocol": "*",
                 "sourcePortRange": "*",
                 "destinationPortRange": "80",
                 "sourceAddressPrefix": "Internet",
-                "destinationAddressPrefix": "[reference(variables('lbPublicIpAddressName')).ipAddress]",
+                "destinationAddressPrefix": "*",
                 "access": "Allow",
                 "priority": 100,
+                "direction": "Inbound"
+                }
+            },
+            {
+                "name": "Deny_RDP_SSH",
+                "properties": {
+                "description": "NSG rule for denying RDP and SSH traffic",
+                "protocol": "Tcp",
+                "sourcePortRange": "*",
+                "destinationPortRange": "3389,22",
+                "sourceAddressPrefix": "Internet",
+                "destinationAddressPrefix": "*",
+                "access": "Deny",
+                "priority": 101,
                 "direction": "Inbound"
                 }
             }
@@ -236,7 +258,7 @@
                       "backendAddressPool": {
                           "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('lbName'), variables('lbBackendPoolName'))]"
                       },
-                      "frontendPort": 8080,
+                      "frontendPort": 80,
                       "backendPort": 80,
                       "enableFloatingIP": false,
                       "idleTimeoutInMinutes": 10,
@@ -299,7 +321,7 @@
         "singlePlacementGroup": "[parameters('singlePlacementGroup')]",
         "platformFaultDomainCount": "[parameters('platformFaultDomainCount')]",
         "upgradePolicy": {
-            "mode": "Manual"
+            "mode": "Automatic"
         },
         "virtualMachineProfile": {
             "storageProfile": {
@@ -313,7 +335,7 @@
                 "computerNamePrefix": "[variables('vmssName')]",
                 "adminUsername": "[parameters('adminUsername')]",
                 "adminPassword": "[parameters('adminPassword')]"
-            },
+                },
             "networkProfile": {
                 "networkInterfaceConfigurations": [
                     {
@@ -342,22 +364,16 @@
             "extensionProfile": {
                 "extensions": [
                     {
-                        "name": "InstallApacheAndRunHelloWorld",
+                        "name": "InstallIISHelloWorld",
                         "properties": {
-                            "publisher": "Microsoft.Azure.Extensions",
-                            "type": "CustomScript",
-                            "typeHandlerVersion": "2.1",
+                            "publisher": "Microsoft.Compute",
+                            "type": "CustomScriptExtension",
+                            "typeHandlerVersion": "1.7",
                             "autoUpgradeMinorVersion": true,
                             "settings": {
-                                "skipDos2Unix":false,
-                                "timestamp":123456789          
-                              },
-                            "protectedSettings": {
-                                "commandToExecute": "./vmssscript.sh",
-                                "fileUris": [
-                                    "https://github.com/dharitha23/Rackspace-Azure-Test/tree/main/scripts/vmssscript.sh"
-                                ]
-                            }
+                                "fileUris": "",
+                                "commandToExecute": "powershell.exe installwebserver.ps1"
+                              }
                         }
                     }
                 ]
@@ -431,7 +447,7 @@
 "outputs": {
     "applicationUrl": {
         "type": "string",
-        "value": "[concat('http://', reference(variables('lbPublicIpAddressName')).dnsSettings.fqdn, '/Helloworld.html')]"
+        "value": "[concat('http://', reference(variables('lbPublicIpAddressName')).dnsSettings.fqdn)]"
     }
 }
 }
